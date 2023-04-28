@@ -1,8 +1,6 @@
 from aiogram import Bot, Dispatcher, executor, types
-import aiogram.utils.markdown as md
 import os
 from dotenv import load_dotenv
-import requests
 import time
 
 from calculations import iss_params, iss_crew
@@ -47,7 +45,32 @@ async def menu(message: types.Message):
 
 @dp.callback_query_handler()
 async def callback(call):
-    await call.message.answer(call.data)
+
+    async def coordinates_converter():
+        lat = iss_params.iss_data()['lat']
+        lng = iss_params.iss_data()['lng']
+
+        if lat < 0:
+            lat = f"{round(lat, 3) * -1}° S"
+        else:
+            lat = f"{round(lat, 3)}° N"
+
+        if lng < 0:
+            lng = f"{round(lng, 3) * -1}° W"
+        else:
+            lng = f"{round(lng, 3)}° E"
+
+        return {'lat': lat, 'lng': lng}
+
+    if call.data == 'location':
+        coordinates = await coordinates_converter()
+        await bot.send_message(call.from_user.id, f"🌍 International Space Station "
+                                                  f"now at: \n\n<i>latitude</i> - {coordinates['lat']}\n"
+                                                  f"<i>longitude</i> - {coordinates['lng']}", parse_mode='HTML')
+        await bot.send_location(call.from_user.id,
+                                latitude=iss_params.iss_data()['lat'],
+                                longitude=iss_params.iss_data()['lng'])
+        await bot.send_message(call.from_user.id, "Return to the \n⚙️ <b>Main Menu</b> 👉 /menu", parse_mode='HTML')
 
 
 if __name__ == "__main__":
