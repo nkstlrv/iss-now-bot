@@ -27,7 +27,6 @@ async def start(message: types.Message):
 
 @dp.message_handler(commands=['menu'])
 async def menu(message: types.Message):
-
     menu_markup = types.InlineKeyboardMarkup(row_width=2)
 
     b1 = types.InlineKeyboardButton('Location 📍🗺️', callback_data='location')
@@ -98,10 +97,24 @@ async def callback(call):
     elif call.data == 'cameras':
         await bot.send_message(call.from_user.id, f"To choose live camera press 👉 /cameras")
 
+    elif call.data == 'earth':
+        await bot.send_message(call.from_user.id, "Live view on Earth from ISS\n\n"
+                                                  "https://www.youtube.com/live/itdpuGHAcpg?feature=share")
+        await bot.send_message(call.from_user.id, "Return to the \n⚙️ <b>Main Menu</b> 👉 /menu", parse_mode='HTML')
+
+    elif call.data == 'station':
+        await bot.send_message(call.from_user.id, "Live view on the International Space Station\n\n"
+                                                  "https://www.youtube.com/live/xAieE-QtOeM?feature=share")
+        await bot.send_message(call.from_user.id, "Return to the \n⚙️ <b>Main Menu</b> 👉 /menu", parse_mode='HTML')
+
+    elif call.data == 'tv':
+        await bot.send_message(call.from_user.id, "NASA Live TV\n\n"
+                                                  "https://www.youtube.com/live/21X5lGlDOfg?feature=share")
+        await bot.send_message(call.from_user.id, "Return to the \n⚙️ <b>Main Menu</b> 👉 /menu", parse_mode='HTML')
+
 
 @dp.message_handler(commands=['cameras'])
 async def menu(message: types.Message):
-
     camera_markup = types.InlineKeyboardMarkup(row_width=1)
 
     camera_markup.add(types.InlineKeyboardButton('🌎 Earth Cam', callback_data='earth'))
@@ -109,7 +122,6 @@ async def menu(message: types.Message):
     camera_markup.add(types.InlineKeyboardButton('📺 NASA Live TV', callback_data='tv'))
 
     await message.answer('🎥 Live Cameras', reply_markup=camera_markup)
-
 
 
 if __name__ == "__main__":
