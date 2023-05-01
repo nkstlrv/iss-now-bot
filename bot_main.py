@@ -47,8 +47,8 @@ async def menu(message: types.Message):
 @dp.callback_query_handler()
 async def callback(call):
     async def coordinates_converter():
-        lat = iss_params.iss_data()['lat']
-        lng = iss_params.iss_data()['lng']
+        lat = await iss_params.iss_data()['lat']
+        lng = await iss_params.iss_data()['lng']
 
         if lat < 0:
             lat = f"{round(lat, 3) * -1}° S"
@@ -68,28 +68,28 @@ async def callback(call):
                                                   f"now at: \n\n<i>latitude</i> - {coordinates['lat']}\n"
                                                   f"<i>longitude</i> - {coordinates['lng']}", parse_mode='HTML')
         await bot.send_location(call.from_user.id,
-                                latitude=iss_params.iss_data()['lat'],
-                                longitude=iss_params.iss_data()['lng'])
+                                latitude=await iss_params.iss_data()['lat'],
+                                longitude=await iss_params.iss_data()['lng'])
         await bot.send_message(call.from_user.id, "Return to the \n⚙️ <b>Main Menu</b> 👉 /menu", parse_mode='HTML')
 
     elif call.data == 'params':
         await bot.send_message(call.from_user.id, f"📊 International Space Station parameters:", parse_mode='HTML')
-        await bot.send_message(call.from_user.id, f"<b><i>Velocity</i></b>:   {iss_params.iss_data()['v_mps']} m/s"
-                                                  f"  | {iss_params.iss_data()['v_kph']} km/h\n\n"
-                                                  f"<b><i>Altitude</i></b>:   {iss_params.iss_data()['alt']} km\n\n"
-                                                  f"<b><i>Earth side</i></b>:   {iss_params.iss_data()['vis']}\n\n"
-                                                  f"<b><i>People on board</i></b>:   {iss_crew.people_iss()['num']}",
+        await bot.send_message(call.from_user.id, f"<b><i>Velocity</i></b>:   {await iss_params.iss_data()['v_mps']} m/s"
+                                                  f"  | {await iss_params.iss_data()['v_kph']} km/h\n\n"
+                                                  f"<b><i>Altitude</i></b>:   {await iss_params.iss_data()['alt']} km\n\n"
+                                                  f"<b><i>Earth side</i></b>:   {await iss_params.iss_data()['vis']}\n\n"
+                                                  f"<b><i>People on board</i></b>:   {await iss_crew.people_iss()['num']}",
                                parse_mode='HTML')
         await bot.send_message(call.from_user.id, "Return to the \n⚙️ <b>Main Menu</b> 👉 /menu", parse_mode='HTML')
 
     elif call.data == 'crew':
-        await bot.send_message(call.from_user.id, f"🧑‍🚀 There are <b>{iss_crew.people_iss()['num']}</b> people"
+        await bot.send_message(call.from_user.id, f"🧑‍🚀 There are <b>{await iss_crew.people_iss()['num']}</b> people"
                                                   f" on board now",
                                parse_mode='html')
         await bot.send_message(call.from_user.id, f"Here is a list of them:",
                                parse_mode='html')
 
-        for name in iss_crew.people_iss()['people']:
+        for name in await iss_crew.people_iss()['people']:
             await bot.send_message(call.from_user.id, f"{name}", parse_mode='html')
 
         await bot.send_message(call.from_user.id, "Return to the \n⚙️ <b>Main Menu</b> 👉 /menu", parse_mode='HTML')
