@@ -1,9 +1,10 @@
-from aiogram import Bot, Dispatcher, executor, types
 import os
-from dotenv import load_dotenv
-import time
+import sqlite3
 
-from calculations import iss_params, iss_crew
+from aiogram import Bot, Dispatcher, executor, types
+from dotenv import load_dotenv
+
+from functions import iss_params, iss_crew
 
 load_dotenv()
 
@@ -74,11 +75,12 @@ async def callback(call):
 
     elif call.data == 'params':
         await bot.send_message(call.from_user.id, f"📊 International Space Station parameters:", parse_mode='HTML')
-        await bot.send_message(call.from_user.id, f"<b><i>Velocity</i></b>:   {await iss_params.iss_data()['v_mps']} m/s"
-                                                  f"  | {await iss_params.iss_data()['v_kph']} km/h\n\n"
-                                                  f"<b><i>Altitude</i></b>:   {await iss_params.iss_data()['alt']} km\n\n"
-                                                  f"<b><i>Earth side</i></b>:   {await iss_params.iss_data()['vis']}\n\n"
-                                                  f"<b><i>People on board</i></b>:   {await iss_crew.people_iss()['num']}",
+        await bot.send_message(call.from_user.id,
+                               f"<b><i>Velocity</i></b>:   {await iss_params.iss_data()['v_mps']} m/s"
+                               f"  | {await iss_params.iss_data()['v_kph']} km/h\n\n"
+                               f"<b><i>Altitude</i></b>:   {await iss_params.iss_data()['alt']} km\n\n"
+                               f"<b><i>Earth side</i></b>:   {await iss_params.iss_data()['vis']}\n\n"
+                               f"<b><i>People on board</i></b>:   {await iss_crew.people_iss()['num']}",
                                parse_mode='HTML')
         await bot.send_message(call.from_user.id, "Return to the \n⚙️ <b>Main Menu</b> 👉 /menu", parse_mode='HTML')
 
