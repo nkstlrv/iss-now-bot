@@ -30,11 +30,11 @@ async def start(message: types.Message):
 async def menu(message: types.Message):
     menu_markup = types.InlineKeyboardMarkup(row_width=2)
 
-    b1 = types.InlineKeyboardButton('Location 📍🗺️', callback_data='location')
-    b2 = types.InlineKeyboardButton('Parameters 📊', callback_data='params')
-    b3 = types.InlineKeyboardButton('Crew 🧑‍🚀', callback_data='crew')
-    b4 = types.InlineKeyboardButton('Live Cameras 🎥', callback_data='cameras')
-    b5 = types.InlineKeyboardButton('Notify on Flyovers 💫', callback_data='notify')
+    b1 = types.InlineKeyboardButton('Location 📍🗺️', callback_data='m-location')
+    b2 = types.InlineKeyboardButton('Parameters 📊', callback_data='m-params')
+    b3 = types.InlineKeyboardButton('Crew 🧑‍🚀', callback_data='m-crew')
+    b4 = types.InlineKeyboardButton('Live Cameras 🎥', callback_data='m-cameras')
+    b5 = types.InlineKeyboardButton('Notify on Flyovers 💫', callback_data='m-notify')
     b6 = types.InlineKeyboardButton('Source Code', url='https://github.com/nkstlrv/iss-now-bot')
 
     menu_markup.row(b1, b2)
@@ -45,11 +45,11 @@ async def menu(message: types.Message):
     await message.answer('⚙️ ISS Now menu', reply_markup=menu_markup)
 
 
-@dp.callback_query_handler()
+@dp.callback_query_handler(text_startswith="m")
 async def callback(call):
     async def coordinates_converter():
-        lat = await iss_params.iss_data()['lat']
-        lng = await iss_params.iss_data()['lng']
+        lat = iss_params.iss_data()['lat']
+        lng = iss_params.iss_data()['lng']
 
         if lat < 0:
             lat = f"{round(lat, 3) * -1}° S"
@@ -63,43 +63,62 @@ async def callback(call):
 
         return {'lat': lat, 'lng': lng}
 
-    if call.data == 'location':
+    if call.data == 'm-location':
         coordinates = await coordinates_converter()
         await bot.send_message(call.from_user.id, f"🌍 International Space Station "
                                                   f"now at: \n\n<i>latitude</i> - {coordinates['lat']}\n"
                                                   f"<i>longitude</i> - {coordinates['lng']}", parse_mode='HTML')
         await bot.send_location(call.from_user.id,
-                                latitude=await iss_params.iss_data()['lat'],
-                                longitude=await iss_params.iss_data()['lng'])
+                                latitude=iss_params.iss_data()['lat'],
+                                longitude=iss_params.iss_data()['lng'])
         await bot.send_message(call.from_user.id, "Return to the \n⚙️ <b>Main Menu</b> 👉 /menu", parse_mode='HTML')
 
-    elif call.data == 'params':
+    elif call.data == 'm-params':
         await bot.send_message(call.from_user.id, f"📊 International Space Station parameters:", parse_mode='HTML')
         await bot.send_message(call.from_user.id,
-                               f"<b><i>Velocity</i></b>:   {await iss_params.iss_data()['v_mps']} m/s"
-                               f"  | {await iss_params.iss_data()['v_kph']} km/h\n\n"
-                               f"<b><i>Altitude</i></b>:   {await iss_params.iss_data()['alt']} km\n\n"
-                               f"<b><i>Earth side</i></b>:   {await iss_params.iss_data()['vis']}\n\n"
-                               f"<b><i>People on board</i></b>:   {await iss_crew.people_iss()['num']}",
+                               f"<b><i>Velocity</i></b>:   {iss_params.iss_data()['v_mps']} m/s"
+                               f"  | {iss_params.iss_data()['v_kph']} km/h\n\n"
+                               f"<b><i>Altitude</i></b>:   {iss_params.iss_data()['alt']} km\n\n"
+                               f"<b><i>Earth side</i></b>:   {iss_params.iss_data()['vis']}\n\n"
+                               f"<b><i>People on board</i></b>:   {iss_crew.people_iss()['num']}",
                                parse_mode='HTML')
         await bot.send_message(call.from_user.id, "Return to the \n⚙️ <b>Main Menu</b> 👉 /menu", parse_mode='HTML')
 
-    elif call.data == 'crew':
-        await bot.send_message(call.from_user.id, f"🧑‍🚀 There are <b>{await iss_crew.people_iss()['num']}</b> people"
+    elif call.data == 'm-crew':
+        await bot.send_message(call.from_user.id, f"🧑‍🚀 There are <b>{iss_crew.people_iss()['num']}</b> people"
                                                   f" on board now",
                                parse_mode='html')
         await bot.send_message(call.from_user.id, f"Here is a list of them:",
                                parse_mode='html')
 
-        for name in await iss_crew.people_iss()['people']:
+        for name in iss_crew.people_iss()['people']:
             await bot.send_message(call.from_user.id, f"{name}", parse_mode='html')
 
         await bot.send_message(call.from_user.id, "Return to the \n⚙️ <b>Main Menu</b> 👉 /menu", parse_mode='HTML')
 
-    elif call.data == 'cameras':
+    elif call.data == 'm-cameras':
         await bot.send_message(call.from_user.id, f"To choose live camera press 👉 /cameras")
 
-    elif call.data == 'earth':
+    elif call.data == 'm-notify':
+        await bot.send_message(call.from_user.id,
+                               "To get notified 🔔 on ISS flyovers you need to <b>Sign Up</b>.\n\n"
+                               "To proceed press 👉 /notify", parse_mode='html')
+
+
+@dp.message_handler(commands=['cameras'])
+async def menu(message: types.Message):
+    camera_markup = types.InlineKeyboardMarkup(row_width=1)
+
+    camera_markup.add(types.InlineKeyboardButton('🌎 Earth Cam', callback_data='earth'))
+    camera_markup.add(types.InlineKeyboardButton('🛰️ Space Station Cam', callback_data='station'))
+    camera_markup.add(types.InlineKeyboardButton('📺 NASA Live TV', callback_data='tv'))
+
+    await message.answer('🎥 Live Cameras', reply_markup=camera_markup)
+
+
+@dp.callback_query_handler(lambda call: call.data == "earth" or call.data == "station" or call.data == 'tv')
+async def callback(call):
+    if call.data == 'earth':
         await bot.send_message(call.from_user.id, "Live view on Earth from ISS\n\n"
                                                   "https://www.youtube.com/live/itdpuGHAcpg?feature=share")
         await bot.send_message(call.from_user.id, "Return to the \n⚙️ <b>Main Menu</b> 👉 /menu", parse_mode='HTML')
@@ -115,15 +134,32 @@ async def callback(call):
         await bot.send_message(call.from_user.id, "Return to the \n⚙️ <b>Main Menu</b> 👉 /menu", parse_mode='HTML')
 
 
-@dp.message_handler(commands=['cameras'])
+@dp.message_handler(commands=['notify'])
 async def menu(message: types.Message):
-    camera_markup = types.InlineKeyboardMarkup(row_width=1)
+    db = sqlite3.connect("data/iss_now.db")
+    c = db.cursor()
 
-    camera_markup.add(types.InlineKeyboardButton('🌎 Earth Cam', callback_data='earth'))
-    camera_markup.add(types.InlineKeyboardButton('🛰️ Space Station Cam', callback_data='station'))
-    camera_markup.add(types.InlineKeyboardButton('📺 NASA Live TV', callback_data='tv'))
+    notify_markup = types.InlineKeyboardMarkup(row_width=2)
+    b1 = types.InlineKeyboardButton('📋 Sign Up', callback_data='n-sign-up')
+    b2 = types.InlineKeyboardButton('✅ On notifications', callback_data='n-on')
+    b3 = types.InlineKeyboardButton('❌ Off notifications', callback_data='n-off')
+    b4 = types.InlineKeyboardButton('📍 Update Location', callback_data='n-loc')
+    b5 = types.InlineKeyboardButton('🗑️ Delete Account', callback_data='n-loc')
 
-    await message.answer('🎥 Live Cameras', reply_markup=camera_markup)
+    c.execute("""
+        SELECT id FROM config;
+    """)
+
+    ids = c.fetchall()
+
+    if message.from_user.id in ids:
+        notify_markup.add(b2, b3, b4, b5)
+    else:
+        notify_markup.add(b1)
+
+    await message.answer('🔔 Notifications Setup Menu 🛠️', reply_markup=notify_markup)
+
+    db.close()
 
 
 if __name__ == "__main__":

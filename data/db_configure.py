@@ -7,7 +7,7 @@ def configure_db():
     print('Database created')
 
     c = db.cursor()
-    c.execute("""CREATE TABLE UserConfig(
+    c.execute("""CREATE TABLE config(
         
         id int NOT NULL UNIQUE PRIMARY KEY ,
         username varchar(250) NOT NULL,
@@ -16,10 +16,7 @@ def configure_db():
 
     );""")
 
-    c.execute("""
-        INSERT INTO UserConfig (id, username, f_name) 
-        VALUES (0, 'test', 'test');
-    """)
+    db.commit()
 
     db.close()
     print('DB Closed')
@@ -28,3 +25,4 @@ def configure_db():
 if __name__ == "__main__":
     # configure_db()
     pass
+

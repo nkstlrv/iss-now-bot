@@ -1,11 +1,9 @@
 import requests
-import asyncio
-
 
 ISS_API = "https://api.wheretheiss.at/v1/satellites/25544"
 
 
-async def iss_data():
+def iss_data():
     req = requests.get(ISS_API).json()
 
     dt = req['visibility']
