@@ -10,8 +10,8 @@ def configure_db():
     c.execute("""CREATE TABLE config(
         
         id int NOT NULL UNIQUE PRIMARY KEY ,
-        username text NOT NULL,
-        f_name text NOT NULL DEFAULT 'no name',
+        username text default NULL,
+        f_name text NOT NULL DEFAULT NULL,
         lat real default null,
         lng real default null,
         do_notify boolean not null default false,

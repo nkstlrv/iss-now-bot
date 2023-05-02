@@ -5,7 +5,7 @@ from aiogram import Bot, Dispatcher, executor, types
 from dotenv import load_dotenv
 
 from functions import iss_params, iss_crew
-
+from functions.get_all_ids import get_ids
 
 # ----------------------------------------------------------------------------------------------------------------------
 # bot's code
@@ -16,6 +16,10 @@ bot = Bot(os.getenv("TELEGRAM_TOKEN"))
 dp = Dispatcher(bot)
 
 
+
+
+
+# Start
 @dp.message_handler(commands=['start'])
 async def start(message: types.Message):
     await message.answer(f'Hello there, <b>{message.chat.first_name}</b> 👋', parse_mode='HTML')
@@ -27,6 +31,7 @@ async def start(message: types.Message):
     await message.answer('To call the <b>Main Menu</b> press 👉 /menu', parse_mode="HTML")
 
 
+# Main Menu
 @dp.message_handler(commands=['menu'])
 async def menu(message: types.Message):
     menu_markup = types.InlineKeyboardMarkup(row_width=2)
@@ -46,6 +51,7 @@ async def menu(message: types.Message):
     await message.answer('⚙️ ISS Now menu', reply_markup=menu_markup)
 
 
+# Main Menu callback handler
 @dp.callback_query_handler(text_startswith="m")
 async def callback(call):
     async def coordinates_converter():
@@ -106,6 +112,7 @@ async def callback(call):
                                "To proceed press 👉 /notify", parse_mode='html')
 
 
+# Cameras Menu
 @dp.message_handler(commands=['cameras'])
 async def menu(message: types.Message):
     camera_markup = types.InlineKeyboardMarkup(row_width=1)
@@ -117,6 +124,7 @@ async def menu(message: types.Message):
     await message.answer('🎥 Live Cameras', reply_markup=camera_markup)
 
 
+# Cameras callback handler
 @dp.callback_query_handler(lambda call: call.data == "earth" or call.data == "station" or call.data == 'tv')
 async def callback(call):
     if call.data == 'earth':
@@ -135,26 +143,32 @@ async def callback(call):
         await bot.send_message(call.from_user.id, "Return to the \n⚙️ <b>Main Menu</b> 👉 /menu", parse_mode='HTML')
 
 
+# Notifications Menu
 @dp.message_handler(commands=['notify'])
 async def menu(message: types.Message):
     db = sqlite3.connect("data/iss_now.db")
     c = db.cursor()
 
-    notify_markup = types.InlineKeyboardMarkup(row_width=2)
+    notify_markup = types.InlineKeyboardMarkup(row_width=1)
     b1 = types.InlineKeyboardButton('📋 Sign Up', callback_data='n-sign-up')
     b2 = types.InlineKeyboardButton('✅ On notifications', callback_data='n-on')
     b3 = types.InlineKeyboardButton('❌ Off notifications', callback_data='n-off')
-    b4 = types.InlineKeyboardButton('📍 Update Location', callback_data='n-loc')
-    b5 = types.InlineKeyboardButton('🗑️ Delete Account', callback_data='n-loc')
+    b4 = types.InlineKeyboardButton('📍 Update Location', callback_data='n-update')
+    b5 = types.InlineKeyboardButton('🗑️ Delete Account', callback_data='n-delete')
 
-    c.execute("""
-        SELECT id FROM config;
-    """)
-
-    ids = c.fetchall()
+    ids = get_ids()
 
     if message.from_user.id in ids:
-        notify_markup.add(b2, b3, b4, b5)
+
+        c.execute("""SELECT do_notify FROM config 
+                    WHERE id == (?)""", (message.from_user.id,))
+        do_notify = c.fetchall()[0][0]
+
+        if do_notify == 0:
+            notify_markup.add(b2, b4, b5)
+        else:
+            notify_markup.add(b3, b4, b5)
+
     else:
         notify_markup.add(b1)
 
@@ -163,9 +177,91 @@ async def menu(message: types.Message):
     db.close()
 
 
+# Notifications callback handler
 @dp.callback_query_handler(text_startswith="n")
 async def callback(call):
-    pass
+    db = sqlite3.connect("data/iss_now.db")
+    c = db.cursor()
+
+    if call.data == 'n-sign-up':
+        b1 = types.KeyboardButton("🗺️ Share Location", request_location=True)
+        b2 = types.KeyboardButton("⛔ Stop registration")
+        loc_markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=1, one_time_keyboard=True).add(b1, b2)
+
+        await bot.send_message(call.from_user.id,
+                               "To Sign Up, I need your 📍 <b>location</b> first\n\n"
+                               "Just press the <b>Share Location</b> button 👇",
+                               parse_mode='html', reply_markup=loc_markup)
+
+    elif call.data == 'n-delete':
+        c.execute("""
+            DELETE FROM config
+            WHERE id == (?)
+        """, (call.from_user.id,))
+
+        db.commit()
+
+        await bot.send_message(call.from_user.id, "Your account was successfully deleted 🗑️")
+        await bot.send_message(call.from_user.id, "🔔 Notifications Setup Menu 🛠️ 👉 /notify \n\n"
+                                                  "<b>Main Menu</b> 👉 /menu", parse_mode='HTML')
+
+    elif call.data == 'n-update':
+        b1 = types.KeyboardButton("🗺️ New Location", request_location=True)
+        b2 = types.KeyboardButton("⛔ Stop Update")
+        loc_markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=1, one_time_keyboard=True).add(b1, b2)
+
+        await bot.send_message(call.from_user.id,
+                               "To Update location just press <b>New Location</b> button 👇",
+                               parse_mode='html', reply_markup=loc_markup)
+
+    db.close()
+
+
+# Location Setup and Update handler
+@dp.message_handler(content_types=['location'])
+async def menu(message: types.Message):
+    user_lat = message.location.latitude
+    user_lng = message.location.longitude
+    await message.reply("Location received ✔️", reply_markup=types.ReplyKeyboardRemove())
+
+    db = sqlite3.connect("data/iss_now.db")
+    c = db.cursor()
+
+    ids = get_ids()
+
+    user_id = message.from_user.id
+
+    try:
+        user_username = message.from_user.username
+    except Exception:
+        user_username = None
+
+    user_f_name = message.from_user.first_name
+
+    if user_id in ids:
+        c.execute("""
+                    UPDATE config
+                    SET lat = (?), lng = (?)
+                    WHERE id == (?);
+                """, (user_lat, user_lng, user_id))
+
+        db.commit()
+        await message.answer("Location updated ✅")
+        await message.answer("🔔 Notifications Setup Menu 🛠️ 👉 /notify \n\n"
+                             "<b>Main Menu</b> 👉 /menu", parse_mode='HTML')
+
+    else:
+        c.execute("""
+                           INSERT INTO config (id, username, f_name, lat, lng) 
+                           VALUES (?, ?, ?, ?, ?)
+               """, (user_id, user_username, user_f_name, user_lat, user_lng))
+        db.commit()
+
+        await message.answer("Registration completed ✅")
+        await message.answer("🔔 Notifications Setup Menu 🛠️ 👉 /notify \n\n"
+                             "<b>Main Menu</b> 👉 /menu", parse_mode='HTML')
+
+    db.close()
 
 
 if __name__ == "__main__":
