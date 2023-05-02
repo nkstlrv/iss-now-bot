@@ -10,10 +10,14 @@ def configure_db():
     c.execute("""CREATE TABLE config(
         
         id int NOT NULL UNIQUE PRIMARY KEY ,
-        username varchar(250) NOT NULL,
-        f_name varchar(255) NOT NULL DEFAULT 'no name',
-        notify boolean not null default false
-
+        username text NOT NULL,
+        f_name text NOT NULL DEFAULT 'no name',
+        lat real default null,
+        lng real default null,
+        do_notify boolean not null default false,
+        last_notified integer default Null
+        
+        
     );""")
 
     db.commit()
@@ -23,6 +27,6 @@ def configure_db():
 
 
 if __name__ == "__main__":
-    # configure_db()
-    pass
+    configure_db()
+
 

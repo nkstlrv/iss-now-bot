@@ -6,10 +6,11 @@ from dotenv import load_dotenv
 
 from functions import iss_params, iss_crew
 
-load_dotenv()
 
 # ----------------------------------------------------------------------------------------------------------------------
 # bot's code
+
+load_dotenv()
 
 bot = Bot(os.getenv("TELEGRAM_TOKEN"))
 dp = Dispatcher(bot)
@@ -160,6 +161,11 @@ async def menu(message: types.Message):
     await message.answer('🔔 Notifications Setup Menu 🛠️', reply_markup=notify_markup)
 
     db.close()
+
+
+@dp.callback_query_handler(text_startswith="n")
+async def callback(call):
+    pass
 
 
 if __name__ == "__main__":
