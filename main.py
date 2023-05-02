@@ -1,5 +1,6 @@
 import os
 import sqlite3
+import time
 
 from aiogram import Bot, Dispatcher, executor, types
 from dotenv import load_dotenv
@@ -7,27 +8,19 @@ from dotenv import load_dotenv
 from functions import iss_params, iss_crew
 from functions.get_all_ids import get_ids
 
-# ----------------------------------------------------------------------------------------------------------------------
-# bot's code
-
 load_dotenv()
 
 bot = Bot(os.getenv("TELEGRAM_TOKEN"))
 dp = Dispatcher(bot)
 
 
-
-
-
 # Start
 @dp.message_handler(commands=['start'])
 async def start(message: types.Message):
     await message.answer(f'Hello there, <b>{message.chat.first_name}</b> 👋', parse_mode='HTML')
+    time.sleep(1)
     await message.answer('This is <b>ISS Now</b> bot 🤖', parse_mode="HTML")
-    await message.answer("My mission is to supply you with current data about\n"
-                         "<a href='https://www.wikiwand.com/en/International_Space_Station'><b>"
-                         "International Space Station</b></a>",
-                         parse_mode='HTML')
+    time.sleep(1)
     await message.answer('To call the <b>Main Menu</b> press 👉 /menu', parse_mode="HTML")
 
 
@@ -108,8 +101,7 @@ async def callback(call):
 
     elif call.data == 'm-notify':
         await bot.send_message(call.from_user.id,
-                               "To get notified 🔔 on ISS flyovers you need to <b>Sign Up</b>.\n\n"
-                               "To proceed press 👉 /notify", parse_mode='html')
+                               "To open 🔔 <b>Notifications menu</b>\n press 👉 /notify", parse_mode='html')
 
 
 # Cameras Menu
@@ -172,7 +164,7 @@ async def menu(message: types.Message):
     else:
         notify_markup.add(b1)
 
-    await message.answer('🔔 Notifications Setup Menu 🛠️', reply_markup=notify_markup)
+    await message.answer('🔔 Notifications Menu 🛠️', reply_markup=notify_markup)
 
     db.close()
 
@@ -202,6 +194,7 @@ async def callback(call):
         db.commit()
 
         await bot.send_message(call.from_user.id, "Your account was successfully deleted 🗑️")
+        time.sleep(1)
         await bot.send_message(call.from_user.id, "🔔 Notifications Setup Menu 🛠️ 👉 /notify \n\n"
                                                   "<b>Main Menu</b> 👉 /menu", parse_mode='HTML')
 
@@ -214,6 +207,34 @@ async def callback(call):
                                "To Update location just press <b>New Location</b> button 👇",
                                parse_mode='html', reply_markup=loc_markup)
 
+    elif call.data == 'n-on':
+        c.execute("""
+                    UPDATE config
+                    SET do_notify = 1
+                    WHERE id == (?);
+                """, (call.from_user.id,))
+
+        db.commit()
+
+        await bot.send_message(call.from_user.id, "Notifications Turned On ✅")
+        time.sleep(1)
+        await bot.send_message(call.from_user.id, "🔔 Notifications Setup Menu 🛠️ 👉 /notify \n\n"
+                                                  "<b>Main Menu</b> 👉 /menu", parse_mode='HTML')
+
+    elif call.data == 'n-off':
+        c.execute("""
+                    UPDATE config
+                    SET do_notify = 0
+                    WHERE id == (?);
+                """, (call.from_user.id,))
+
+        db.commit()
+
+        await bot.send_message(call.from_user.id, "Notifications Turned Off ❌")
+        time.sleep(1)
+        await bot.send_message(call.from_user.id, "🔔 Notifications Setup Menu 🛠️ 👉 /notify \n\n"
+                                                  "<b>Main Menu</b> 👉 /menu", parse_mode='HTML')
+
     db.close()
 
 
@@ -223,6 +244,7 @@ async def menu(message: types.Message):
     user_lat = message.location.latitude
     user_lng = message.location.longitude
     await message.reply("Location received ✔️", reply_markup=types.ReplyKeyboardRemove())
+    time.sleep(1)
 
     db = sqlite3.connect("data/iss_now.db")
     c = db.cursor()
@@ -247,6 +269,7 @@ async def menu(message: types.Message):
 
         db.commit()
         await message.answer("Location updated ✅")
+        time.sleep(1)
         await message.answer("🔔 Notifications Setup Menu 🛠️ 👉 /notify \n\n"
                              "<b>Main Menu</b> 👉 /menu", parse_mode='HTML')
 
@@ -258,6 +281,7 @@ async def menu(message: types.Message):
         db.commit()
 
         await message.answer("Registration completed ✅")
+        time.sleep(1)
         await message.answer("🔔 Notifications Setup Menu 🛠️ 👉 /notify \n\n"
                              "<b>Main Menu</b> 👉 /menu", parse_mode='HTML')
 
