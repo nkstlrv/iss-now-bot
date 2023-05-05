@@ -264,7 +264,7 @@ async def menu(message: types.Message):
     if user_id in ids:
         c.execute("""
                     UPDATE config
-                    SET lat = (?), lng = (?)
+                    SET lat = (?), lng = (?), last_notified = 1
                     WHERE id == (?);
                 """, (user_lat, user_lng, user_id))
 
