@@ -5,8 +5,9 @@ import time
 from aiogram import Bot, Dispatcher, executor, types
 from dotenv import load_dotenv
 
-from functions import iss_params, iss_crew
-from functions.get_all_ids import get_ids
+from background_tasks.updater import schedule_jobs
+from functions import iss_params, iss_crew, unix_time_converter, geocoding
+from functions.user_ids_from_db import get_all_ids, get_ids_to_notify
 
 load_dotenv()
 
@@ -148,7 +149,7 @@ async def menu(message: types.Message):
     b4 = types.InlineKeyboardButton('📍 Update Location', callback_data='n-update')
     b5 = types.InlineKeyboardButton('🗑️ Delete Account', callback_data='n-delete')
 
-    ids = get_ids()
+    ids = get_all_ids()
 
     if message.from_user.id in ids:
 
@@ -249,7 +250,7 @@ async def menu(message: types.Message):
     db = sqlite3.connect("data/iss_now.db")
     c = db.cursor()
 
-    ids = get_ids()
+    ids = get_all_ids()
 
     user_id = message.from_user.id
 
@@ -288,5 +289,52 @@ async def menu(message: types.Message):
     db.close()
 
 
+# Notifies every user during ISS flyover at their location
+async def notify_users(dp: Dispatcher):
+    db = sqlite3.connect("data/iss_now.db")
+    c = db.cursor()
+
+    users_to_notify = get_ids_to_notify()
+
+    for user in users_to_notify:
+
+        c.execute("""
+        
+            SELECT lat, lng FROM config
+            WHERE id == (?) AND last_notified < ((?) - 1080);
+        
+        """, (user, int(time.time())))
+
+        data = c.fetchall()
+        iss_data = iss_params.iss_data()
+
+        if len(data) > 0:
+
+            try:
+                user_coordinates = (data[0][0], data[0][1])
+                iss_coordinates = (iss_data['lat'], iss_data['lng'])
+
+                dist = geocoding.get_distance(user_coordinates, iss_coordinates)
+                # dist = 200
+
+                if dist <= 600 and "N" in iss_data['vis']:
+                    await dp.bot.send_message(user, "⚠️ ISS <b>Flyover now</b> ! 🔥", parse_mode='html')
+                    await dp.bot.send_location(user, latitude=iss_coordinates[0], longitude=iss_coordinates[1])
+
+                    print(f"{user} notified at {unix_time_converter.unix_converter(time.time())}")
+
+                    c.execute("""
+                    UPDATE config
+                    SET last_notified = (?)
+                    WHERE id == (?);
+                    """, (int(time.time()), user))
+
+                    db.commit()
+
+            except Exception as e:
+                print(e)
+
+
 if __name__ == "__main__":
-    executor.start_polling(dp)
+    executor.start_polling(dp, on_startup=schedule_jobs(notify_users, dp),
+                           on_shutdown=sqlite3.connect("data/iss_now.db").close())

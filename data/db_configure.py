@@ -15,7 +15,7 @@ def configure_db():
         lat real default null,
         lng real default null,
         do_notify boolean not null default false,
-        last_notified integer default Null
+        last_notified integer default 1
         
         
     );""")
