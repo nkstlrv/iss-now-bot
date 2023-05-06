@@ -133,6 +133,24 @@ def set_new_last_notified(current_unix_time, user):
     db.close()
 
 
+def check_if_user_signed_up(user_id):
+    db = sqlite3.connect("database/iss_now.db")
+    c = db.cursor()
+
+    c.execute("""
+    
+    SELECT * FROM users
+    WHERE id == (?);
+    
+    """, (user_id,))
+
+    data = c.fetchall()
+
+    db.commit()
+    db.close()
+
+    return data
+
 if __name__ == "__main__":
     all_ids = get_all_ids()
     print(all_ids)
