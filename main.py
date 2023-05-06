@@ -7,7 +7,8 @@ from dotenv import load_dotenv
 
 from background_tasks.updater import schedule_jobs
 from functions import iss_params, iss_crew, unix_time_converter, geocoding
-from functions.user_ids_from_db import get_all_ids, get_ids_to_notify
+from database.db_operations import get_all_ids, get_ids_to_notify, check_if_notify_user, delete_user, set_notify_on, \
+    set_notify_off, update_location, set_new_location, get_user_coordinates_to_notify, set_new_last_notified
 
 load_dotenv()
 
@@ -139,7 +140,8 @@ async def callback(call):
 # Notifications Menu
 @dp.message_handler(commands=['notify'])
 async def menu(message: types.Message):
-    db = sqlite3.connect("data/iss_now.db")
+
+    db = sqlite3.connect("database/iss_now.db")
     c = db.cursor()
 
     notify_markup = types.InlineKeyboardMarkup(row_width=1)
@@ -153,9 +155,7 @@ async def menu(message: types.Message):
 
     if message.from_user.id in ids:
 
-        c.execute("""SELECT do_notify FROM config 
-                    WHERE id == (?)""", (message.from_user.id,))
-        do_notify = c.fetchall()[0][0]
+        do_notify = check_if_notify_user(message.from_user.id)
 
         if do_notify == 0:
             notify_markup.add(b2, b4, b5)
@@ -167,14 +167,10 @@ async def menu(message: types.Message):
 
     await message.answer('🔔 Notifications Menu 🛠️', reply_markup=notify_markup)
 
-    db.close()
-
 
 # Notifications callback handler
 @dp.callback_query_handler(text_startswith="n")
 async def callback(call):
-    db = sqlite3.connect("data/iss_now.db")
-    c = db.cursor()
 
     if call.data == 'n-sign-up':
         b1 = types.KeyboardButton("🗺️ Share Location", request_location=True)
@@ -187,12 +183,8 @@ async def callback(call):
                                parse_mode='html', reply_markup=loc_markup)
 
     elif call.data == 'n-delete':
-        c.execute("""
-            DELETE FROM config
-            WHERE id == (?)
-        """, (call.from_user.id,))
 
-        db.commit()
+        delete_user(call.from_user.id)
 
         await bot.send_message(call.from_user.id, "Your account was successfully deleted 🗑️")
         time.sleep(1)
@@ -209,13 +201,8 @@ async def callback(call):
                                parse_mode='html', reply_markup=loc_markup)
 
     elif call.data == 'n-on':
-        c.execute("""
-                    UPDATE config
-                    SET do_notify = 1
-                    WHERE id == (?);
-                """, (call.from_user.id,))
 
-        db.commit()
+        set_notify_on(call.from_user.id)
 
         await bot.send_message(call.from_user.id, "Notifications Turned On ✅")
         time.sleep(1)
@@ -223,20 +210,13 @@ async def callback(call):
                                                   "<b>Main Menu</b> 👉 /menu", parse_mode='HTML')
 
     elif call.data == 'n-off':
-        c.execute("""
-                    UPDATE config
-                    SET do_notify = 0
-                    WHERE id == (?);
-                """, (call.from_user.id,))
 
-        db.commit()
+        set_notify_off(call.from_user.id)
 
         await bot.send_message(call.from_user.id, "Notifications Turned Off ❌")
         time.sleep(1)
         await bot.send_message(call.from_user.id, "🔔 Notifications Setup Menu 🛠️ 👉 /notify \n\n"
                                                   "<b>Main Menu</b> 👉 /menu", parse_mode='HTML')
-
-    db.close()
 
 
 # Location Setup and Update handler
@@ -247,65 +227,48 @@ async def menu(message: types.Message):
     await message.reply("Location received ✔️", reply_markup=types.ReplyKeyboardRemove())
     time.sleep(1)
 
-    db = sqlite3.connect("data/iss_now.db")
-    c = db.cursor()
-
     ids = get_all_ids()
 
     user_id = message.from_user.id
 
     try:
         user_username = message.from_user.username
-    except Exception:
+    except Exception as e:
+        print(e)
         user_username = None
 
     user_f_name = message.from_user.first_name
 
     if user_id in ids:
-        c.execute("""
-                    UPDATE config
-                    SET lat = (?), lng = (?), last_notified = 1
-                    WHERE id == (?);
-                """, (user_lat, user_lng, user_id))
 
-        db.commit()
+        update_location(user_lat, user_lng, user_id)
+
         await message.answer("Location updated ✅")
         time.sleep(1)
         await message.answer("🔔 Notifications Setup Menu 🛠️ 👉 /notify \n\n"
                              "<b>Main Menu</b> 👉 /menu", parse_mode='HTML')
 
     else:
-        c.execute("""
-                           INSERT INTO config (id, username, f_name, lat, lng) 
-                           VALUES (?, ?, ?, ?, ?)
-               """, (user_id, user_username, user_f_name, user_lat, user_lng))
-        db.commit()
+
+        set_new_location(user_id, user_username, user_f_name, user_lat, user_lng)
 
         await message.answer("Registration completed ✅")
         time.sleep(1)
         await message.answer("🔔 Notifications Setup Menu 🛠️ 👉 /notify \n\n"
                              "<b>Main Menu</b> 👉 /menu", parse_mode='HTML')
 
-    db.close()
-
 
 # Notifies every user during ISS flyover at their location
 async def notify_users(dp: Dispatcher):
-    db = sqlite3.connect("data/iss_now.db")
+    db = sqlite3.connect("database/iss_now.db")
     c = db.cursor()
 
     users_to_notify = get_ids_to_notify()
+    print("Checked users to notify")
 
     for user in users_to_notify:
 
-        c.execute("""
-        
-            SELECT lat, lng FROM config
-            WHERE id == (?) AND last_notified < ((?) - 1080);
-        
-        """, (user, int(time.time())))
-
-        data = c.fetchall()
+        data = get_user_coordinates_to_notify(user, int(time.time()))
         iss_data = iss_params.iss_data()
 
         if len(data) > 0:
@@ -317,19 +280,13 @@ async def notify_users(dp: Dispatcher):
                 dist = geocoding.get_distance(user_coordinates, iss_coordinates)
                 # dist = 200
 
-                if dist <= 600 and "N" in iss_data['vis']:
+                if dist <= 600 and "D" in iss_data['vis']:
                     await dp.bot.send_message(user, "⚠️ ISS <b>Flyover now</b> ! 🔥", parse_mode='html')
                     await dp.bot.send_location(user, latitude=iss_coordinates[0], longitude=iss_coordinates[1])
 
                     print(f"{user} notified at {unix_time_converter.unix_converter(time.time())}")
 
-                    c.execute("""
-                    UPDATE config
-                    SET last_notified = (?)
-                    WHERE id == (?);
-                    """, (int(time.time()), user))
-
-                    db.commit()
+                    set_new_last_notified(int(time.time()), user)
 
             except Exception as e:
                 print(e)
@@ -337,4 +294,4 @@ async def notify_users(dp: Dispatcher):
 
 if __name__ == "__main__":
     executor.start_polling(dp, on_startup=schedule_jobs(notify_users, dp),
-                           on_shutdown=sqlite3.connect("data/iss_now.db").close())
+                           on_shutdown=sqlite3.connect("database/iss_now.db").close())

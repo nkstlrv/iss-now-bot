@@ -228,4 +228,6 @@ cython_debug/
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 #.idea/
 
-/data/iss_now.db
+/database/iss-now.db
+/database/iss_now.db
+/iss_now.db

@@ -7,7 +7,7 @@ def configure_db():
     print('Database created')
 
     c = db.cursor()
-    c.execute("""CREATE TABLE config(
+    c.execute("""CREATE TABLE users(
         
         id int NOT NULL UNIQUE PRIMARY KEY ,
         username text default NULL,
