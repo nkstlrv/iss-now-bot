@@ -1,7 +1,0 @@
-version: '3.7'
-services:
-  Aiogram:
-    container_name: ISS-Now-Aiogram
-    restart: always
-    image: aiogram:latest
-
