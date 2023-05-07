@@ -21,7 +21,7 @@ def get_all_ids():
     """
     Return all user's ids stored in db
     """
-    with SQLiteDatabase as c:
+    with SQLiteDatabase("database/iss_now.db") as c:
         ids = []
         c.execute("""
             SELECT id FROM users;
@@ -37,8 +37,8 @@ def get_ids_to_notify():
     """
     Returns all user's ids where Notification turned On
     """
-    with SQLiteDatabase as c:
-        ids_to_notify = []
+    ids_to_notify = []
+    with SQLiteDatabase("database/iss_now.db") as c:
         c.execute("""          
                 SELECT id FROM main.users
                 WHERE do_notify == 1;
@@ -54,7 +54,7 @@ def check_if_notify_user(user_id):
     """
     Checks if user's notification is turned On
     """
-    with SQLiteDatabase as c:
+    with SQLiteDatabase("database/iss_now.db") as c:
         c.execute("""SELECT do_notify FROM users 
                                         WHERE id == (?)""", (user_id,))
         do_notify = c.fetchall()[0][0]
@@ -65,7 +65,7 @@ def delete_user(user_id):
     """
     Deletes user from db
     """
-    with SQLiteDatabase as c:
+    with SQLiteDatabase("database/iss_now.db") as c:
         c.execute("""
                                DELETE FROM users
                                WHERE id == (?)
@@ -76,7 +76,7 @@ def set_notify_on(user_id):
     """
     Turns On notifications for specific user
     """
-    with SQLiteDatabase as c:
+    with SQLiteDatabase("database/iss_now.db") as c:
         c.execute("""
                                         UPDATE users
                                         SET do_notify = 1
@@ -88,7 +88,7 @@ def set_notify_off(user_id):
     """
         Turns Off notifications for specific user
         """
-    with SQLiteDatabase as c:
+    with SQLiteDatabase("database/iss_now.db") as c:
         c.execute("""
                                         UPDATE users
                                         SET do_notify = 0
@@ -100,7 +100,7 @@ def update_location(user_lat, user_lng, user_id):
     """
     Updates user's coordinates + reboots last notified field to default
     """
-    with SQLiteDatabase as c:
+    with SQLiteDatabase("database/iss_now.db") as c:
         c.execute("""
                                        UPDATE users
                                        SET lat = (?), lng = (?), last_notified = 1
@@ -112,7 +112,7 @@ def set_new_location(user_id, user_username, user_f_name, user_lat, user_lng):
     """
     Registers new user to db and sets its location
     """
-    with SQLiteDatabase as c:
+    with SQLiteDatabase("database/iss_now.db") as c:
         c.execute("""
                                                INSERT INTO users (id, username, f_name, lat, lng) 
                                                VALUES (?, ?, ?, ?, ?)
@@ -123,7 +123,7 @@ def get_user_coordinates_to_notify(user, current_unix_time):
     """
     Returns coordinates of a user
     """
-    with SQLiteDatabase as c:
+    with SQLiteDatabase("database/iss_now.db") as c:
         c.execute("""
     
                                SELECT lat, lng FROM users
@@ -139,7 +139,7 @@ def set_new_last_notified(current_unix_time, user):
     """
     Updates last notified field after user notification is done
     """
-    with SQLiteDatabase as c:
+    with SQLiteDatabase("database/iss_now.db") as c:
         c.execute("""
                                         UPDATE users
                                         SET last_notified = (?)
@@ -151,7 +151,7 @@ def check_if_user_signed_up(user_id):
     """
     Checks if user id is registered in db
     """
-    with SQLiteDatabase as c:
+    with SQLiteDatabase("database/iss_now.db") as c:
         c.execute("""
         SELECT * FROM users
         WHERE id == (?);
