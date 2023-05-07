@@ -160,6 +160,18 @@ def check_if_user_signed_up(user_id):
         return data
 
 
+def admin_get_all_users_data():
+    """
+    Returns data every user of the bot
+    """
+    with SQLiteDatabase("database/iss_now.db") as c:
+        c.execute("""
+        SELECT * FROM users;
+        """)
+        data = c.fetchall()
+        return data
+
+
 if __name__ == "__main__":
     all_ids = get_all_ids()
     print(all_ids)

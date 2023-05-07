@@ -8,13 +8,24 @@ from background_tasks.updater import schedule_jobs
 from bot.markups import MainMenuMarkup, NavMarkup, NotifyMarkup
 from database.db_operations import get_all_ids, get_ids_to_notify, \
     check_if_notify_user, delete_user, set_notify_on, update_location, \
-    set_new_location, get_user_coordinates_to_notify, set_new_last_notified, check_if_user_signed_up, set_notify_off
+    set_new_location, get_user_coordinates_to_notify, set_new_last_notified, \
+    check_if_user_signed_up, set_notify_off, admin_get_all_users_data
 from functions import iss_params, iss_crew, unix_time_converter, geocoding
 
 load_dotenv()
 
 bot = Bot(os.getenv("TELEGRAM_TOKEN"))
 dp = Dispatcher(bot)
+
+
+# Admin command to get all bot's users
+@dp.message_handler(commands=['getallbotusers'])
+async def get_users(message: types.Message):
+    if message.from_user.id == int(os.getenv("ADMIN_ID")):
+        users = admin_get_all_users_data()
+        await message.answer(users)
+    else:
+        await message.answer(message.from_user.id)
 
 
 # Start
