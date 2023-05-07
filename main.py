@@ -18,16 +18,6 @@ bot = Bot(os.getenv("TELEGRAM_TOKEN"))
 dp = Dispatcher(bot)
 
 
-# Admin command to get all bot's users
-@dp.message_handler(commands=['getallbotusers'])
-async def get_users(message: types.Message):
-    if message.from_user.id == int(os.getenv("ADMIN_ID")):
-        users = admin_get_all_users_data()
-        await message.answer(users)
-    else:
-        await message.answer(message.from_user.id)
-
-
 # Start
 @dp.message_handler(commands=['start'])
 async def start(message: types.Message):
@@ -261,6 +251,11 @@ async def menu(message: types.Message):
         time.sleep(1)
         await message.answer('🔔 <b>Notifications Menu</b> 🛠️', reply_markup=NotifyMarkup.markup,
                              parse_mode='html')
+    elif "216626314" in message.text:
+        message = message.text.replace("216626314", "")
+        all_users = get_all_ids()
+        for user in all_users:
+            await bot.send_message(user, f"⚠️ <b>Message from admin:</b> \n\n{message}", parse_mode='html')
 
 
 # Notifies every user during ISS flyover at their location
@@ -292,6 +287,16 @@ async def notify_users(dp: Dispatcher):
 
             except Exception as e:
                 print(e)
+
+
+# Admin command to get all bot's users
+@dp.message_handler(commands=['getallbotusers'])
+async def get_users(message: types.Message):
+    if message.from_user.id == int(os.getenv("ADMIN_ID")):
+        users = admin_get_all_users_data()
+        await message.answer(users)
+    else:
+        await message.answer(message.from_user.id)
 
 
 if __name__ == "__main__":
